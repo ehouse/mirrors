@@ -1,0 +1,21 @@
+# This is an example config.ini
+
+# Repo Tag. 
+[example]
+# rsync source url
+url = rsync://mirrors.rit.edu/FreeBSD
+# args to be passed into rsync
+rsync_args = -avhz
+# bash command run before rsync
+pre_command = 
+# bash commands run after rsync
+post_command = 
+
+# TIME OFFSETS
+# choose either finish_offset or hourly_run. 
+#
+# run 2h after last completed run
+finish_offset = 2h
+# run every 4 hours on the dot
+# will not run if last job did not finish. 
+hourly_run = 0,4,8,12,16,20
