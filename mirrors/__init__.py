@@ -8,13 +8,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", help="increase output verbosity",
                         action="store_true")
+    parser.add_argument("-c", "--config", help="path to config file")
     parser.parse_args()
-
+    args = parser.parse_args()
 
     config = configparser.ConfigParser()
     config.sections()
-    config.read('config.ini')
+    config.read(args.config)
 
-    testRepo = repo()
-    testRepo.config_options = {'test':'test'}
-    print(testRepo.config_options)
+    print(config._sections)
+    for key in config._sections:
+        print(config._sections[key])
