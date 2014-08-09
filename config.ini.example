@@ -6,6 +6,10 @@
 url = rsync://mirrors.rit.edu/FreeBSD
 # args to be passed into rsync
 rsync_args = -avhz
+# Priority Queue Weight, Similar to niceness. -10 is highest/10 is lowest
+weight = 0
+# Filesystem Destination for rsync
+destination = ./dist/
 # bash command run before rsync
 pre_command = 
 # bash commands run after rsync
