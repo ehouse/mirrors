@@ -1,4 +1,6 @@
 import Queue
+import ConfigParser
+import logging
 
 class repo:
     def __init__(self, name, config):
@@ -6,61 +8,42 @@ class repo:
         Repository Object.
         Gets stored in RepoManager
         :param name: string name of repo
-        :param config: dict of configuration
+        :param config: running config options
+        :type config: ConfigParser.ConfigParser
         """
+
         # running config options
-        self._configOptions = config
+        self.config = config
 
         ### Config Settings
-        # Repo Name
         self.name = name
 
-        # rsync source url
-        if('source' in self._configOptions):
-            self.source = self._configOptions['source']
-        else:
-            raise ValueError('Config Sytax Error, Source Required in {0}.'.format(self.name),)
+        if not self.config.has_option(self.name,'source'):
+            raise self.RepoError("No Source Defined".format(self.name), self.name)
 
-        # rsync args
-        if('rsync_args' in self._configOptions):
-            self.args = self._configOptions['rsync_args']
-        else:
-            raise ValueError('Config Sytax Error, rsync Args Required in {0}.'.format(self.name),)
+        if not self.config.has_option(self.name,'destination'):
+            # destination not set, setting to default 
+            config.set(self.name, 'destination', './dist/')
 
-        # rsync file destination
-        if('destination' in self._configOptions):
-            self.destination = self._configOptions['destination']
-        else:
-            self.destination = "./dist/"
+        if not self.config.has_option(self.name,'rsync_args'):
+            raise self.RepoError("No rsync_args Defined".format(self.name), self.name)
 
-        # Priority Queue Weight, value between -10 and 10
-        if('weight' in self._configOptions):
-            self.weight = self._configOptions['weight']
-        else:
-            self.weight = 0
+        if not self.config.has_option(self.name,'weight'):
+            # weight not set, setting to default 
+            config.set(self.name, 'weight', '0')
 
-        # Delay before next run is aloud to start
-        if('finish_offset' in self._configOptions):
-            self.delayTime = self._configOptions['finish_offset']
-            self.strictTime = None
-        # list of hours sync must happen on
-        elif('hourly_run' in self._configOptions):
-            self.strictTime = self._configOptions['hourly_run']
-            self.delayTime = None
-        else:
-            raise ValueError('Config Sytax Error, either finish_offset or hourly_run required in {0}'.format(self.name))
+        if self.config.has_option(self.name,'finish_offset') and self.config.has_option(self.name,'hourly_run'):
+            raise self.RepoError("Both finish_offset and hourly_run cannot be defined".format(self.name), self.name)
+        elif not self.config.has_option(self.name,'finish_offset') and not self.config.has_option(self.name,'hourly_run'):
+            raise self.RepoError("Either finish_offset or hourly_run must be defined".format(self.name), self.name)
 
-        # Pre-bash Script
-        if('pre_command' in self._configOptions):
-            self.preScript = self._configOptions['pre_command']
-        else:
-            self.preScript = None
+        if not self.config.has_option(self.name,'pre_command'):
+            # weight not set, setting to default 
+            config.set(self.name, 'pre_command', '')
 
-        # Post-Bash Script
-        if('post_command' in self._configOptions):
-            self.postScript = self._configOptions['post_command']
-        else:
-            self.postScript = None
+        if not self.config.has_option(self.name,'post_command'):
+            # weight not set, setting to default 
+            config.set(self.name, 'post_command', '')
 
         ### Job Stats
         # Start time of last sucessful run
@@ -70,42 +53,20 @@ class repo:
         # Repo Avg run length
         self.runAvg = None
 
-        ### Function Calls
-        self.__writeConfig()
-
-    def __writeConfig(self):
-        """
-        Writes running config to stored config.
-        Required before syncing to disk
-        """
-        if self.source:
-            self._configOptions['source'] = self.source
-        if self.args:
-            self._configOptions['rsync_args'] = self.args
-        if self.destination:
-            self._configOptions['destination'] = self.destination
-        if self.weight:
-            self._configOptions['weight'] = self.weight
-        if self.delayTime:
-            self._configOptions['finish_offset'] = self.delayTime
-        if self.strictTime:
-            self._configOptions['hourly_run'] = self.strictTime
-        if self.preScript:
-            self._configOptions['pre_command'] = self.preScripa
-        else:
-            self._configOptions['pre_command'] = None
-        if self.postScript:
-            self._configOptions['post_command'] = self.postScript
-        else:
-            self._configOptions['post_command'] = None
+        logging.info("{0} loaded succesfully".format(self.name))
 
     def returnConfig(self):
         """
         Returns running config.
         :return dict: Dict of running config
         """
-        self.__writeConfig()
-        return self._configOptions
+        return self.config._sections[self.name]
+
+    class RepoError(Exception):
+        def __init__(self,message,name):
+            self.message = message
+            self.name = name
+            Exception.__init__(self, message)
 
 
 class repoManager:
@@ -116,4 +77,3 @@ class repoManager:
         """
         self.repoQueue = Queue.PriorityQueue(0)
         self.repoList = []
-
