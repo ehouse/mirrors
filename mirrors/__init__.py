@@ -2,13 +2,14 @@
 import argparse
 import configparser
 import subprocess
-from librepo import repo
+from mirrors.librepo import repo
+from mirrors.librepo import repoManager
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-v", "--verbose", help="increase output verbosity",
-                        action="store_true")
-    parser.add_argument("-c", "--config", help="path to config file")
+            action="store_true")
+    parser.add_argument("-c", "--config", help="path to config file",)
     parser.parse_args()
     args = parser.parse_args()
 
@@ -16,6 +17,6 @@ def main():
     config.sections()
     config.read(args.config)
 
-    print(config._sections)
+    manager = repoManager()
     for key in config._sections:
-        print(config._sections[key])
+        manager.repoList.append(repo(key, config._sections[key]))
