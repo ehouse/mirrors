@@ -2,7 +2,7 @@ import Queue
 import ConfigParser
 import logging
 
-class repo:
+class Repo:
     def __init__(self, name, config):
         """
         Repository Object.
@@ -47,11 +47,11 @@ class repo:
 
         ### Job Stats
         # Start time of last sucessful run
-        self.lastRun = None
+        self.last_run = None
         # Length of last run
-        self.lastRunLength = None
+        self.last_run_length = None
         # Repo Avg run length
-        self.runAvg = None
+        self.run_avg = None
 
         logging.info("{0} loaded succesfully".format(self.name))
 
@@ -69,11 +69,11 @@ class repo:
             Exception.__init__(self, message)
 
 
-class repoManager:
+class RepoManager:
     def __init__(self):
         """
         Contains all Repository objects.
         Controls when and what gets run
         """
-        self.repoQueue = Queue.PriorityQueue(0)
-        self.repoList = []
+        self.repo_queue = Queue.PriorityQueue(0)
+        self.repo_list = []
