@@ -17,17 +17,33 @@ def main():
     config = ConfigParser.ConfigParser()
     config.read(args.c)
 
+    if args.log:
+        log_file = args.log
+    elif config.has_option("DEFAULT", "log_file"):
+        log_file = config.get("DEFAULT", "log_file")
+    else:
+        log_file = ""
+
     if args.verbose:
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s', filename=args.log)
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s', filename=log_file)
     elif args.debug:
-        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s: %(levelname)s: %(message)s', filename=args.log)
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s: %(levelname)s: %(message)s', filename=log_file)
         logging.debug("Turning Debug On")
 
     logging.debug("Begining Loading Repos")
-    manager = RepoManager()
+
+    try:
+        manager = RepoManager(config)
+    except RepoManager.DefaultError as e:
+        logging.critical("Critical Failure While Loading DEFAULT Section | {0}".format(e.message))
+        logging.critical("Program Terminating Due to Critical Error")
+        exit(0)
+
     for name in config.sections():
         try:
-            manager.repoList.append(Repo(name, config))
+            # Fill the manager.repo_list with Repo Objects
+            manager.repo_list.append(Repo(name, config))
         except Repo.RepoError as e:
             logging.warning("FAILED TO LOAD {0} | {1}".format(e.name, e.message))
+
     logging.debug("Finished Loading Repos")

@@ -3,8 +3,8 @@
 # Settings may be changed by the user during run time and written out to the config file.
 # Errors in the config file will prevent repo from being loaded on startup.
 
-# Global Config Values. Must be named global
-[global]
+# Global Config Values. Must be named DEFAULT
+[DEFAULT]
 # Number of async syncing threads: Required
 # Setting threads to zero will disable async syncing
 async_threads = 4
