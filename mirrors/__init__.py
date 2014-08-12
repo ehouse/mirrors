@@ -27,7 +27,7 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s', filename=log_file)
     elif args.debug:
-        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s: %(levelname)s: %(message)s', filename=log_file)
+        logging.basicConfig(level=logging.DEBUG, format=' %(asctime)s, %(threadName)s, %(levelname)s: %(message)s', filename=log_file)
         logging.debug("Turning Debug On")
 
     logging.debug("Begining Loading Repos")
@@ -42,7 +42,8 @@ def main():
     for name in config.sections():
         try:
             # Fill the manager.repo_list with Repo Objects
-            manager.repo_list.append(Repo(name, config))
+            repo = Repo(name, config)
+            manager.repo_list.append(repo)
         except Repo.RepoError as e:
             logging.warning("FAILED TO LOAD {0} | {1}".format(e.name, e.message))
 
