@@ -1,29 +1,33 @@
 # Example Config File for Mirrors
+# Copy config.ini.example and load it in via mirrors -c <filename>
+# Settings may be changed by the user during run time and written out to the config file.
 # Errors in the config file will prevent repo from being loaded on startup.
 
 # Global Config Values. Must be named global
 [global]
-# Number of sync threads: Required
-threads = 4
+# Number of async syncing threads: Required
+# Setting threads to zero will disable async syncing
+async_threads = 4
 
 # Location of log file: Optional
 log_file = ./mirrors.log
 
 # Sleep time between checks: Required
-# use m to denote minutes or h to denote hours. 
+# use m to denote minutes or h to denote hours.
 check_sleep = 5m
 
 
-# Name of Repo: Reqired
+# Name of Repo: Required
 # Repos are access via this name in the repl
-# Conflics will result in the repo 
+# This names also dictate what folder the synced files go into
+# Name conflicts will result in the repo failing to load
 [test1]
 
 # Rsync source of the repo: Required
 source = rsync://mirrors.rit.edu/FreeBSD
 
 # Arguments for source rsync: Required
-# Seperating arguments with spaces is valid
+# Arguments must be valid rsync args, precede with dashes when necessary.
 rsync_args = -avhz
 
 # Destination of the source rsync. Optional
@@ -37,16 +41,18 @@ destination = ./distros/
 weight = 0
 
 # shell command or script to run before a sync is started: Optional
-pre_command = 
+pre_command =
 
 # shell command or script to run after a sync has finished: Optional
-post_command = 
+post_command =
 
-# Time after a completed sync before attempting a new sync. Either finish_offset or hourly_run is required, not both. 
-# This does not denote when a sync will start, only when it may start. For strict running times use finish_offset
+# Time after a completed sync before attempting a new sync: Either async_sleep or hourly_sync is required, not both. Remove comment of desired setting
+# This does not denote when a sync will start, only when it may start. For strict running times use hourly_sync
 # use m to denote minutes or h to denote hours
-finish_offset = 2h
+# Either async_sleep or hourly_sync is required, not both. Remove comment of desired setting
+#async_sleep = 2h
 
-# Strict time scheduele for repos to be synced. Either finish_offset or hourly_run is required, not both.
-# list the hours seperated by a comma a sync must happen on. Use a . to denote partial hours. ex. 0.5 for 12:30 or 0.25 for 12:15
-hourly_run = 0,4,8,12,16,20
+# Strict time schedule for repos to be synced: Either async_sleep or hourly_sync is required, not both. Remove comment of desired setting
+# list the hours separated by a comma a sync must happen on. Use a '.' to denote partial hours. ex. 0.5 for 12:30 or 0.25 for 12:15
+# Example will sync at 12midnight, 6:30am 12noon, 6:30pm
+#hourly_sync = 0,6.5,12,18.5
