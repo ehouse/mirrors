@@ -2,12 +2,10 @@
 from setuptools import setup, find_packages
 
 requires = [
-            'argparse',
-            'configparser',
         ]
 
 setup(name='mirrors',
-      version='0.0.1',
+      version='0.1.0',
       description='rsync mirror manager',
       author='Ethan House',
       author_email='ehouse@csh.rit.edu',

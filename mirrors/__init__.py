@@ -2,7 +2,8 @@
 import argparse
 import ConfigParser
 import logging
-from mirrors.librepo import Repo, RepoManager
+import os
+from mirrors.librepo import RepoManager
 from mirrors.libcmd import Console
 
 
@@ -25,13 +26,19 @@ def main():
     else:
         log_file = ""
 
+    directory = os.path.dirname(config.get("DEFAULT", 'log_file'))
+    if not os.path.exists(directory):
+        logging.info("Creating {0}".format(directory))
+        os.makedirs(directory)
+        open(directoru, 'a').close()
+
     if args.verbose:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s', filename=log_file)
     elif args.debug:
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s, %(threadName)s, %(levelname)s: %(message)s', filename=log_file)
         logging.debug("Turning Debug On")
 
-    logging.debug("Begining Loading Repos")
+    logging.debug("Beginning Loading Repos")
 
     try:
         manager = RepoManager(config)
@@ -42,10 +49,8 @@ def main():
 
     for name in config.sections():
         try:
-            # Fill the manager.repo_list with Repo Objects
-            repo = Repo(name, config)
-            manager.repo_list.append(repo)
-        except Repo.RepoError as e:
+            manager.add_repo(name)
+        except RepoManager.RepoError as e:
             logging.warning("FAILED TO LOAD {0} | {1}".format(e.name, e.message))
 
     logging.debug("Finished Loading Repos")

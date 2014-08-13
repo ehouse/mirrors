@@ -5,17 +5,11 @@
 
 # Global Config Values. Must be named DEFAULT
 [DEFAULT]
-# Number of async syncing threads: Required
-# Setting threads to zero will disable async syncing
-async_threads = 4
+# Max number of rsyncs to be running at any given time: Required
+async_processes = 4
 
 # Location of log file: Optional
 log_file = ./mirrors.log
-
-# Sleep time between checks: Required
-# use m to denote minutes or h to denote hours.
-check_sleep = 5m
-
 
 # Name of Repo: Required
 # Repos are access via this name in the repl
@@ -45,6 +39,9 @@ pre_command =
 
 # shell command or script to run after a sync has finished: Optional
 post_command =
+
+# Individual log file
+log_file = ./log/LDP.log
 
 # Time after a completed sync before attempting a new sync: Either async_sleep or hourly_sync is required, not both. Remove comment of desired setting
 # This does not denote when a sync will start, only when it may start. For strict running times use hourly_sync
