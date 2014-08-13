@@ -57,16 +57,9 @@ class Repo:
 
         logging.info("{0} loaded succesfully".format(self.name))
 
-    def returnConfig(self):
-        """Returns running config.
-
-        :return dict: Dict of running config
-        """
-        return self.config._sections[self.name]
-
     def rsync(self):
         """Run an rsync against the repo source"""
-        logging.debug("Running A sync".format(self.name))
+        logging.debug("Running a Sync for {0}".format(self.name))
 
     class RepoError(Exception):
         def __init__(self, message, name):
@@ -103,8 +96,9 @@ class RepoManager:
         if not self.config.has_option('DEFAULT', 'check_sleep'):
             raise self.DefaultError("No check_sleep value defined in DEFAULT")
 
-        for i in range(int(self.config.get("DEFAULT","threads"))):
+        for i in range(int(self.config.get("DEFAULT", "threads"))):
             t = threading.Thread(name="async_{0}".format(i), target=self.__check_queue)
+            t.daemon = True
             t.start()
             self.thread_pool.append(t)
 

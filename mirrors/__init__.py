@@ -3,6 +3,7 @@ import argparse
 import ConfigParser
 import logging
 from mirrors.librepo import Repo, RepoManager
+from mirrors.libcmd import Console
 
 
 def main():
@@ -27,7 +28,7 @@ def main():
     if args.verbose:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s', filename=log_file)
     elif args.debug:
-        logging.basicConfig(level=logging.DEBUG, format=' %(asctime)s, %(threadName)s, %(levelname)s: %(message)s', filename=log_file)
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s, %(threadName)s, %(levelname)s: %(message)s', filename=log_file)
         logging.debug("Turning Debug On")
 
     logging.debug("Begining Loading Repos")
@@ -48,3 +49,6 @@ def main():
             logging.warning("FAILED TO LOAD {0} | {1}".format(e.name, e.message))
 
     logging.debug("Finished Loading Repos")
+
+    console = Console(manager)
+    console.cmdloop()
