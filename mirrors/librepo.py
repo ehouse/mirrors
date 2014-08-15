@@ -51,7 +51,7 @@ class Repo:
             config.set(self.name, 'post_command', '')
 
         if not self.config.has_option(self.name, 'log_file'):
-            #config.set(self.name, 'log_file', './log/{0}'.format(self.name))
+            # config.set(self.name, 'log_file', './log/{0}'.format(self.name))
             raise self.RepoError("no log_file defined in {0}".format(self.name), self.name)
 
         directory = os.path.dirname(config.get(self.name, 'log_file'))
@@ -62,7 +62,7 @@ class Repo:
 
         # Contains rsync_thread
         self.__running_sync = None
-        
+
         # Status of Repo Queue
         self._queued = False
 
@@ -85,7 +85,7 @@ class Repo:
         return False
 
     def is_queued(self):
-        """Returns Bool of queued status""" 
+        """Returns Bool of queued status"""
         return self._queued
 
     def rsync(self):
@@ -110,17 +110,17 @@ class Repo:
             logging.debug(self.config.get(self.name, 'log_file'))
 
             logging.debug("Running rsync {0} {1} {2}".format(
-                                 self.config.get(self.name, "rsync_args"),
-                                 self.config.get(self.name, "source"),
-                                 self.config.get(self.name, "destination")).split())
+                self.config.get(self.name, "rsync_args"),
+                self.config.get(self.name, "source"),
+                self.config.get(self.name, "destination")).split())
 
             self.p = subprocess.Popen("rsync {0} {1} {2}".format(
-                                 self.config.get(self.name, "rsync_args"),
-                                 self.config.get(self.name, "source"),
-                                 self.config.get(self.name, "destination")).split(),
-                                 shell=False,
-                                 stdout=output_file,
-                                 stderr=subprocess.STDOUT)
+                self.config.get(self.name, "rsync_args"),
+                self.config.get(self.name, "source"),
+                self.config.get(self.name, "destination")).split(),
+                shell=False,
+                stdout=output_file,
+                stderr=subprocess.STDOUT)
 
             logging.debug("Finished Sync for {0}".format(self.name))
 
@@ -200,7 +200,7 @@ class RepoManager:
 
     def enqueue(self, name):
         """Add repo to the queue
-        
+
         :param name: string of a repo section in the config
         :return Bool: True if successful or False if repo already queued
         """

@@ -52,11 +52,10 @@ class Console(Cmd):
                     name = args[1]
                     print(self.repo_manager.repo(name).get_logs()[1])
 
-
     def do_terminate(self, args):
         """Send SIGTERM to rsync process"""
         name = args
-        repo = self.repo_manager.repo(name) 
+        repo = self.repo_manager.repo(name)
         repo.terminate()
 
     def do_kill(self, args):
@@ -76,4 +75,3 @@ class Console(Cmd):
     def postloop(self):
         print("Terminating mirrors process")
         logging.debug("Process Terminated via REPL")
-
