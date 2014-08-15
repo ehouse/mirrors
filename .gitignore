@@ -5,3 +5,5 @@ dist/*
 *.swp
 *.conf
 *.log
+distro/*
+log/*
