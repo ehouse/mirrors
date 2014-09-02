@@ -4,6 +4,7 @@ import threading
 import time
 import subprocess
 import os
+from datetime import datetime
 from mirrors.libmirrors import t2s
 
 
@@ -64,29 +65,29 @@ class Repo:
         self.__running_sync = None
 
         # Status of Repo Queue
-        self._queued = False
+        self.queued = False
+
+        self.thread_timer = None
+        self.start_time = None
+        self.finish_time = None
 
         logging.info("{0} loaded succesfully".format(self.name))
 
     def terminate(self):
         """Send SIGTERM to the rsync process"""
         if self.__running_sync:
-            self.__running_sync.terminate()
+            self.__running_sync.p.terminate()
 
     def kill(self):
         """Send SIGKILL to the rsync process"""
         if self.__running_sync:
-            self.__running_sync.kill()
+            self.__running_sync.p.kill()
 
     def is_alive(self):
         """Returns Bool of syncing status"""
         if self.__running_sync:
-            return self.__running_sync.is_alive()
+            return not bool(self.__running_sync.p.poll())
         return False
-
-    def is_queued(self):
-        """Returns Bool of queued status"""
-        return self._queued
 
     def rsync(self):
         """Run an rsync against the repo source"""
@@ -96,23 +97,26 @@ class Repo:
     class rsync_thread(threading.Thread):
         def __init__(self, name, config):
             threading.Thread.__init__(self)
-
             self.config = config
-
             self.p = None
-
             self.name = name
+
+            self.start_time = None
+            self.finish_time = None
 
         def run(self):
             logging.debug("Running Sync for {0}".format(self.name))
 
+            logging.debug("Opening {0} for writing".format(self.config.get(self.name, 'log_file')))
             output_file = open(self.config.get(self.name, 'log_file'), 'w')
-            logging.debug(self.config.get(self.name, 'log_file'))
 
             logging.debug("Running rsync {0} {1} {2}".format(
                 self.config.get(self.name, "rsync_args"),
                 self.config.get(self.name, "source"),
                 self.config.get(self.name, "destination")).split())
+
+            self.start_time = datetime.now()
+            logging.debug("Setting Start time {0} for {1}".format(self.start_time, self.name))
 
             self.p = subprocess.Popen("rsync {0} {1} {2}".format(
                 self.config.get(self.name, "rsync_args"),
@@ -121,19 +125,25 @@ class Repo:
                 shell=False,
                 stdout=output_file,
                 stderr=subprocess.STDOUT)
+            # Bock until the subprocess is done
+            self.p.communicate()
+
+            self.finish_time = datetime.now()
+            logging.debug("Setting Finish time {0} for {1}".format(self.finish_time, self.name))
 
             logging.debug("Finished Sync for {0}".format(self.name))
 
+            logging.debug("Closing {0}".format(self.config.get(self.name, 'log_file')))
             output_file.close()
 
         def terminate(self):
             """Send SIGTERM to the child rsync process"""
-            if not self.p.poll():
+            if self.is_alive():
                 self.p.terminate()
 
         def kill(self):
             """Send SIGKILL to the child rsync process"""
-            if not self.p.poll():
+            if self.is_alive():
                 self.p.kill()
 
         def is_alive(self):
@@ -173,6 +183,7 @@ class RepoManager:
             logging.debug("Blocking on Priority Queue")
             repo = self.repo_queue.get()
             logging.debug("Done Blocking on Priority Queue | Aquired {0}".format(repo.name))
+            repo.queued = False
             repo.rsync()
 
     def repo(self, name):
@@ -204,9 +215,9 @@ class RepoManager:
         :param name: string of a repo section in the config
         :return Bool: True if successful or False if repo already queued
         """
-        if not self.repo_dict[name].is_queued():
+        if not self.repo_dict[name].queued and not self.repo_dict[name].is_alive():
             self.repo_queue.put(self.repo_dict[name])
-            self.repo_dict[name]._queued = True
+            self.repo_dict[name].queued = True
             return True
         else:
             return False

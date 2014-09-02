@@ -3,8 +3,8 @@ import argparse
 import ConfigParser
 import logging
 import os
-from mirrors.librepo import RepoManager
-from mirrors.libcmd import Console
+from mirrors.repo import RepoManager
+from mirrors.cmdline import Console
 
 
 def main():
@@ -39,7 +39,6 @@ def main():
         logging.debug("Turning Debug On")
 
     logging.debug("Beginning Loading Repos")
-
     try:
         manager = RepoManager(config)
     except RepoManager.DefaultError as e:
@@ -52,8 +51,8 @@ def main():
             manager.add_repo(name)
         except RepoManager.RepoError as e:
             logging.warning("FAILED TO LOAD {0} | {1}".format(e.name, e.message))
-
     logging.debug("Finished Loading Repos")
 
+    logging.debug("Starting Command Loop")
     console = Console(manager)
     console.cmdloop()

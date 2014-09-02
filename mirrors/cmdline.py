@@ -38,6 +38,7 @@ class Console(Cmd):
                 print("Failed to enqueue {0}, already in queue".format(name))
         else:
             print("enqueue requires a repo")
+    do_start = do_enqueue
 
     def do_print(self, args):
         """Print config and status events"""
@@ -57,12 +58,13 @@ class Console(Cmd):
         name = args
         repo = self.repo_manager.repo(name)
         repo.terminate()
+    do_kill = do_terminate
 
-    def do_kill(self, args):
+    def do_forcekill(self, args):
         """Send SIGKILL to rsync process"""
         name = args
         repo = self.repo_manager.repo(name)
-        repo.terminate()
+        repo.kill()
 
     def do_exit(self, args):
         """Stops all syncs and terminates mirrors"""
