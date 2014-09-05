@@ -62,37 +62,38 @@ class Repo:
         open(config.get(self.name, 'log_file'), 'a').close()
 
         # Contains rsync_thread
-        self.__running_sync = None
+        self.__sync = self.rsync_thread(self.name, self.config)
 
         # Status of Repo Queue
         self.queued = False
 
-        self.thread_timer = None
-        self.start_time = None
-        self.finish_time = None
-
         logging.info("{0} loaded succesfully".format(self.name))
 
-    def terminate(self):
-        """Send SIGTERM to the rsync process"""
-        if self.__running_sync:
-            self.__running_sync.p.terminate()
+    def reload(self):
+        """Reloads the rsync object and settings.
 
-    def kill(self):
-        """Send SIGKILL to the rsync process"""
-        if self.__running_sync:
-            self.__running_sync.p.kill()
+        This will wipe all currently running rsync timers
+        """
+        del self.__sync
+        self.__sync = self.rsync_thread(self.name, self.config)
 
     def is_alive(self):
         """Returns Bool of syncing status"""
-        if self.__running_sync:
-            return not bool(self.__running_sync.p.poll())
-        return False
+        return bool(self.__sync.p)
 
-    def rsync(self):
+    def terminate(self):
+        """Send SIGTERM to the rsync process"""
+        if self.is_alive():
+            self.__sync.p.terminate()
+
+    def kill(self):
+        """Send SIGKILL to the rsync process"""
+        if self.is_alive():
+            self.__sync.p.kill()
+
+    def start_sync(self):
         """Run an rsync against the repo source"""
-        self.__running_sync = self.rsync_thread(self.name, self.config)
-        self.__running_sync.start()
+        self.__sync.start()
 
     class rsync_thread(threading.Thread):
         def __init__(self, name, config):
@@ -103,20 +104,19 @@ class Repo:
 
             self.start_time = None
             self.finish_time = None
+            self.thread_timer = None
 
         def run(self):
-            logging.debug("Running Sync for {0}".format(self.name))
-
             logging.debug("Opening {0} for writing".format(self.config.get(self.name, 'log_file')))
             output_file = open(self.config.get(self.name, 'log_file'), 'w')
 
-            logging.debug("Running rsync {0} {1} {2}".format(
+            logging.debug("Running rsync with {0} {1} {2}".format(
                 self.config.get(self.name, "rsync_args"),
                 self.config.get(self.name, "source"),
-                self.config.get(self.name, "destination")).split())
+                self.config.get(self.name, "destination")))
 
             self.start_time = datetime.now()
-            logging.debug("Setting Start time {0} for {1}".format(self.start_time, self.name))
+            logging.info("Starting sync {0} at {1}".format(self.name, self.start_time))
 
             self.p = subprocess.Popen("rsync {0} {1} {2}".format(
                 self.config.get(self.name, "rsync_args"),
@@ -126,29 +126,17 @@ class Repo:
                 stdout=output_file,
                 stderr=subprocess.STDOUT)
             # Bock until the subprocess is done
-            self.p.communicate()
+            self.p.wait()
+
+            # Clear out the current process when it finishes
+            del self.p
+            self.p = None
 
             self.finish_time = datetime.now()
-            logging.debug("Setting Finish time {0} for {1}".format(self.finish_time, self.name))
-
-            logging.debug("Finished Sync for {0}".format(self.name))
+            logging.info("Finished sync {0} at {1}".format(self.name, self.finish_time))
 
             logging.debug("Closing {0}".format(self.config.get(self.name, 'log_file')))
             output_file.close()
-
-        def terminate(self):
-            """Send SIGTERM to the child rsync process"""
-            if self.is_alive():
-                self.p.terminate()
-
-        def kill(self):
-            """Send SIGKILL to the child rsync process"""
-            if self.is_alive():
-                self.p.kill()
-
-        def is_alive(self):
-            """Return Bool of alive status"""
-            return not bool(self.p.poll())
 
 
 class RepoManager:
@@ -184,14 +172,14 @@ class RepoManager:
             repo = self.repo_queue.get()
             logging.debug("Done Blocking on Priority Queue | Aquired {0}".format(repo.name))
             repo.queued = False
-            repo.rsync()
+            repo.start_sync()
 
     def repo(self, name):
         """Return Repo object if exists.
 
         :param name: Name of Repo to return
         :return Repo: Repo object if exists
-        :return None: If no repo exists by the pass in name
+        :return None: If no repo exists by that name
         """
         if name in self.repo_dict:
             return self.repo_dict[name]
@@ -208,6 +196,12 @@ class RepoManager:
             self.repo_dict[name] = repo
         else:
             raise self.RepoError("Cannot Create Repo, Section {0} does not exist".format(name))
+
+    def del_repo(self, name):
+        if self.repo_dict[name]:
+            del self.repo_dict[name]
+        else:
+            raise self.RepoError("Cannot Delete Repo, Repo {0} does not exist".format(name))
 
     def enqueue(self, name):
         """Add repo to the queue

@@ -7,30 +7,31 @@ class Console(Cmd):
         Cmd.__init__(self)
         self.prompt = "> "
         self.intro = "Welcome to the mirrors interactive shell. Type help to display commands"
-
         self.repo_manager = repo_manager
 
-    def do_status(self, name):
+    def do_status(self, *args):
         """Prints status table or the status of an individual sync"""
         # Current system is a placeholder. Needs to be reworked
         # Will return a lot more information
+        name = args[0]
         if name:
             repo = self.repo_manager.repo(name)
             if repo.is_alive():
-                print("{0} is currently syncing".format(name))
+                print("{0} is currently Syncing".format(name))
             else:
                 print("{0} is currently Sleeping".format(name))
         else:
             for key in self.repo_manager.repo_dict:
                 self.do_status(key)
 
-    def do_list(self, args):
+    def do_list(self, *args):
         """List all of the loaded repos"""
         for key in self.repo_manager.repo_dict:
             print key
 
-    def do_enqueue(self, name):
+    def do_enqueue(self, *args):
         """Add repo onto the end of the async queue"""
+        name = args[0]
         if name:
             if self.repo_manager.enqueue(name):
                 print("{0} added to sync queue".format(name))
@@ -40,39 +41,55 @@ class Console(Cmd):
             print("enqueue requires a repo")
     do_start = do_enqueue
 
-    def do_print(self, args):
+    def do_print(self, *args):
         """Print config and status events"""
-        args = args.split()
-        if args:
-            if args[0] == "logs":
-                if args[1]:
-                    name = args[1]
-                    print(self.repo_manager.repo(name).get_logs()[0])
-            elif args[0] is "errors":
-                if args[1]:
-                    name = args[1]
-                    print(self.repo_manager.repo(name).get_logs()[1])
+        pass
+        ### TODO
 
-    def do_terminate(self, args):
+    def do_config(self, *args):
+        """Edit configuration running settings"""
+        pass
+        ### TODO
+
+    def do_write(self, *args):
+        """Write configuration settings to file"""
+        pass
+        ### TODO
+
+    def do_add(self, *args):
+        """Add repo from running config"""
+        pass
+        ### TODO
+
+    def do_del(self, *args):
+        """Delete repo from running config"""
+        pass
+        ### TODO
+
+    def do_reload(self, *args):
+        """Reload either individual or entire config"""
+        pass
+        ### TODO
+
+    def do_terminate(self, *args):
         """Send SIGTERM to rsync process"""
-        name = args
-        repo = self.repo_manager.repo(name)
-        repo.terminate()
+        if args[0]:
+            self.repo_manager.repo(args[0]).terminate()
+        else:
+            print("Missing required argument: Repo")
     do_kill = do_terminate
 
-    def do_forcekill(self, args):
+    def do_forcekill(self, *args):
         """Send SIGKILL to rsync process"""
-        name = args
-        repo = self.repo_manager.repo(name)
-        repo.kill()
+        if args[0]:
+            self.repo_manager.repo(args[0]).kill()
+        else:
+            print("Missing required argument: Repo")
 
-    def do_exit(self, args):
+    def do_exit(self, *args):
         """Stops all syncs and terminates mirrors"""
-        exit(0)
-
-    def do_quit(self, args):
-        """Stops all syncs and terminates mirrors"""
-        self.do_exit(None)
+        return True
+    do_quit = do_exit
 
     def postloop(self):
         print("Terminating mirrors process")
