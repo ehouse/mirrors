@@ -159,6 +159,8 @@ class Repo:
                     shell=True,
                     stdout=output_file,
                     stderr=subprocess.STDOUT)
+                self.post_cmd.wait()
+                logging.info("Done running post_command for {0}".format(self.name))
 
             ### Re-Queue the job
             t = t2s(self.config.get(self.name, "async_sleep"))
