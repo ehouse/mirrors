@@ -49,6 +49,8 @@ def main():
     for name in config.sections():
         try:
             manager.add_repo(name)
+            ### TODO: Make this optional
+            manager.enqueue(name)
         except RepoManager.RepoError as e:
             logging.warning("FAILED TO LOAD {0} | {1}".format(e.name, e.message))
     logging.debug("Finished Loading Repos")
