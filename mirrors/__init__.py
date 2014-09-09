@@ -30,7 +30,7 @@ def main():
     if not os.path.exists(directory):
         logging.info("Creating {0}".format(directory))
         os.makedirs(directory)
-        open(directory, 'a').close()
+        open(config.get("DEFAULT","log_file"), 'a').close()
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s', filename=log_file)

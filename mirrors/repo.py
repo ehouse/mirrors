@@ -7,6 +7,14 @@ import os
 from datetime import datetime
 from mirrors.libmirrors import t2s
 
+class Singleton(type):
+    """Singleton Class for RepoManager"""
+    _instances = {}
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
 
 class Repo:
     def __init__(self, name, config):
@@ -69,30 +77,43 @@ class Repo:
 
         logging.info("{0} loaded succesfully".format(self.name))
 
-    def reload(self):
-        """Reloads the rsync object and settings.
+    def is_alive(self):
+        """Returns Bool of syncing status"""
+        return bool(self.__sync.p)
+
+    def running_time(self):
+        """Return total running time of Sync."""
+        pass
+
+    def sleep_time(self):
+        """Return sleep duration."""
+        pass
+    
+    def time_remaining(self):
+        """Return time left until sleep is over."""
+        pass
+
+    def terminate(self):
+        """Send SIGTERM to the rsync process."""
+        if self.is_alive():
+            self.__sync.p.terminate()
+
+    def kill(self):
+        """Send SIGKILL to the rsync process."""
+        if self.is_alive():
+            self.__sync.p.kill()
+
+    def __rebuild(self):
+        """Destroy and recreate the rsync object and settings.
 
         This will wipe all currently running rsync timers
         """
         del self.__sync
         self.__sync = self.rsync_thread(self.name, self.config)
 
-    def is_alive(self):
-        """Returns Bool of syncing status"""
-        return bool(self.__sync.p)
-
-    def terminate(self):
-        """Send SIGTERM to the rsync process"""
-        if self.is_alive():
-            self.__sync.p.terminate()
-
-    def kill(self):
-        """Send SIGKILL to the rsync process"""
-        if self.is_alive():
-            self.__sync.p.kill()
-
     def start_sync(self):
-        """Run an rsync against the repo source"""
+        """Run an rsync against the repo source."""
+        self.__rebuild()
         self.__sync.start()
 
     class rsync_thread(threading.Thread):
@@ -101,6 +122,9 @@ class Repo:
             self.config = config
             self.p = None
             self.name = name
+
+            # Singleton of RepoManager
+            self.repo_manager = RepoManager()
 
             self.start_time = None
             self.finish_time = None
@@ -128,6 +152,20 @@ class Repo:
             # Bock until the subprocess is done
             self.p.wait()
 
+            if self.config.get(self.name, "post_command"):
+                logging.debug("Running post_cmd {0}".format(self.config.get(self.name, "post_command")))
+                self.post_cmd = subprocess.Popen("{0}".format(
+                    self.config.get(self.name, "post_command")),
+                    shell=True,
+                    stdout=output_file,
+                    stderr=subprocess.STDOUT)
+
+            ### Re-Queue the job
+            t = t2s(self.config.get(self.name, "async_sleep"))
+            self.thread_timer = threading.Timer(t, self.repo_manager.enqueue, [self.name])
+            self.thread_timer.start()
+            logging.info("{0} will sleep for {1}".format(self.name, self.config.get(self.name, "async_sleep")))
+
             # Clear out the current process when it finishes
             del self.p
             self.p = None
@@ -139,7 +177,8 @@ class Repo:
             output_file.close()
 
 
-class RepoManager:
+class RepoManager(object):
+    __metaclass__ = Singleton
     def __init__(self, config):
         """Manager of the Repositories and Threading.
 
@@ -170,7 +209,7 @@ class RepoManager:
         while(True):
             logging.debug("Blocking on Priority Queue")
             repo = self.repo_queue.get()
-            logging.debug("Done Blocking on Priority Queue | Aquired {0}".format(repo.name))
+            logging.debug("Aquired {0}".format(repo.name))
             repo.queued = False
             repo.start_sync()
 
