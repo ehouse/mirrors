@@ -5,7 +5,7 @@ requires = [
         ]
 
 setup(name='mirrors',
-      version='0.2.0',
+      version='0.3.0',
       description='rsync mirror manager',
       author='Ethan House',
       author_email='ehouse@csh.rit.edu',

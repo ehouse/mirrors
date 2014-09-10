@@ -11,6 +11,10 @@ async_processes = 4
 # Location of log file: Optional
 log_file = ./mirrors.log
 
+# Time to sleep in seconds in between attempts to run a new sync: Optional
+# Defaults to 30 seconds
+check_sleep = 30
+
 # Name of Repo: Required
 # Repos are access via this name in the repl
 # This names also dictate what folder the synced files go into

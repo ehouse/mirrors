@@ -202,6 +202,12 @@ class RepoManager(object):
         if not self.config.has_option('DEFAULT', 'async_processes'):
             raise self.DefaultError("No async_processes value defined in DEFAULT")
 
+        if not self.config.has_option('DEFAULT', 'check_sleep'):
+            config.set("DEFAULT", 'check_sleep', '30')
+
+        # Current Running Syncs: Compared against max set in config
+        self.running_syncs = 0
+
         self.async_thread = threading.Thread(name="async_control", target=self.__check_queue)
         self.async_thread.daemon = True
         self.async_thread.start()
@@ -209,11 +215,17 @@ class RepoManager(object):
     def __check_queue(self):
         """Queue loop checker for async_control"""
         while(True):
-            logging.debug("Blocking on Priority Queue")
-            repo = self.repo_queue.get()
-            logging.debug("Aquired {0}".format(repo.name))
-            repo.queued = False
-            repo.start_sync()
+            repo = self.repo_queue.get()[1]
+            if self.running_syncs <= self.config.get("DEFAULT", "async_processes"):
+                logging.debug("Aquired {0}".format(repo.name))
+                repo.queued = False
+                self.running_syncs += 1
+                repo.start_sync()
+            else:
+                logging.debug("Requeueing {0}, no open threads".format(repo.name))
+                self.repo_queue.put([-11, repo])
+                logging.debug("Sleeping for {0}".format(self.config.get("DEFAULT", "check_sleep")))
+                time.sleep(float(self.config.get("DEFAULT", "check_sleep")))
 
     def repo(self, name):
         """Return Repo object if exists.
@@ -251,7 +263,7 @@ class RepoManager(object):
         :return Bool: True if successful or False if repo already queued
         """
         if not self.repo_dict[name].queued and not self.repo_dict[name].is_alive():
-            self.repo_queue.put(self.repo_dict[name])
+            self.repo_queue.put([self.config.get(name, "weight"), self.repo_dict[name]])
             self.repo_dict[name].queued = True
             return True
         else:
