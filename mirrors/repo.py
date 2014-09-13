@@ -32,12 +32,15 @@ class Repo:
         # Name of the Repo
         self.name = name
 
+        # Singleton of RepoManager
+        self.repo_manager = RepoManager()
+
         if not self.config.has_option(self.name, 'source'):
             raise self.RepoError("No Source Defined".format(self.name), self.name)
 
         if not self.config.has_option(self.name, 'destination'):
-            config.set(self.name, 'destination', './distro/')
-        directory = os.path.dirname(config.get(self.name, 'destination'))
+            self.config.set(self.name, 'destination', './distro/')
+        directory = os.path.dirname(self.config.get(self.name, 'destination'))
         if not os.path.exists(directory):
             logging.info("Creating {0}".format(directory))
             os.makedirs(directory)
@@ -46,28 +49,40 @@ class Repo:
             raise self.RepoError("No rsync_args Defined".format(self.name), self.name)
 
         if not self.config.has_option(self.name, 'weight'):
-            config.set(self.name, 'weight', '0')
+            self.config.set(self.name, 'weight', '0')
 
         if self.config.has_option(self.name, 'async_sleep') and self.config.has_option(self.name, 'hourly_sync'):
-            raise self.RepoError("Both async_sleep and hourly_sync cannot be defined".format(self.name), self.name)
+            raise self.repo_manager.RepoError("Both async_sleep and hourly_sync cannot be defined".format(self.name), self.name)
         elif not self.config.has_option(self.name, 'async_sleep') and not self.config.has_option(self.name, 'hourly_sync'):
-            raise self.RepoError("Either async_sleep or hourly_sync must be defined".format(self.name), self.name)
+            raise self.repo_manager.RepoError("Either async_sleep or hourly_sync must be defined".format(self.name), self.name)
 
         if not self.config.has_option(self.name, 'pre_command'):
-            config.set(self.name, 'pre_command', '')
+            self.config.set(self.name, 'pre_command', '')
 
         if not self.config.has_option(self.name, 'post_command'):
-            config.set(self.name, 'post_command', '')
+            self.config.set(self.name, 'post_command', '')
 
         if not self.config.has_option(self.name, 'log_file'):
-            # config.set(self.name, 'log_file', './log/{0}'.format(self.name))
-            raise self.RepoError("no log_file defined in {0}".format(self.name), self.name)
+            self.config.set(self.name, 'log_file', './log/{0}.log'.format(self.name))
+            logging.info("No log_file declared in {0}, defaulting to '{0}.log'".format(self.name))
+            #raise self.RepoError("no log_file defined in {0}".format(self.name), self.name)
 
-        directory = os.path.dirname(config.get(self.name, 'log_file'))
-        if not os.path.exists(directory):
-            logging.info("Creating {0}".format(directory))
-            os.makedirs(directory)
-        open(config.get(self.name, 'log_file'), 'a').close()
+        log_file = self.config.get(self.name, "log_file")
+        if os.path.isfile(self.config.get(self.name, "log_file")):
+            try:
+                open(log_file, 'r').close()
+                logging.debug("{0} log file good for writing".format(self.name))
+            except IOError:
+                logging.error("Error opening {0} for writing".format(self.name))
+        else:
+            directory = os.path.dirname(log_file)
+            if not os.path.exists(directory):
+                logging.info("Creating {0}".format(directory))
+                os.makedirs(directory)
+            try:
+                open(log_file, 'a').close()
+            except IOError:
+                logging.error("Error creating {0}".format(self.name))
 
         # Contains rsync_thread
         self.__sync = self.rsync_thread(self.name, self.config)
@@ -130,9 +145,12 @@ class Repo:
             self.finish_time = None
             self.thread_timer = None
 
+            # Set thread to daemon
+            self.daemon = True
+
         def run(self):
             logging.debug("Opening {0} for writing".format(self.config.get(self.name, 'log_file')))
-            output_file = open(self.config.get(self.name, 'log_file'), 'w')
+            output_file = open(self.config.get(self.name, 'log_file'), 'a')
 
             logging.debug("Running rsync with {0} {1} {2}".format(
                 self.config.get(self.name, "rsync_args"),

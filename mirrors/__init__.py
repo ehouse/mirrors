@@ -26,11 +26,20 @@ def main():
     else:
         log_file = ""
 
-    directory = os.path.dirname(config.get("DEFAULT", 'log_file'))
-    if not os.path.exists(directory):
-        logging.info("Creating {0}".format(directory))
-        os.makedirs(directory)
-        open(config.get("DEFAULT","log_file"), 'a').close()
+    log_file = config.get("DEFAULT", "log_file")
+    if os.path.isfile(log_file):
+        try:
+            open(log_file, 'r').close()
+        except IOError as e:
+            print("Error opening {0}: {1} ".format(log_file, e))
+    else:
+        directory = os.path.dirname(log_file)
+        try:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            open(log_file, 'a').close()
+        except IOError as e:
+            print("Error creating {0}: {1}".format(log_file, e))
 
     if args.verbose:
         logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s', filename=log_file)
@@ -50,7 +59,6 @@ def main():
         try:
             manager.add_repo(name)
             ### TODO: Make this optional
-            manager.enqueue(name)
         except RepoManager.RepoError as e:
             logging.warning("FAILED TO LOAD {0} | {1}".format(e.name, e.message))
     logging.debug("Finished Loading Repos")
