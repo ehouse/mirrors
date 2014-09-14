@@ -22,8 +22,6 @@ class Repo:
     def __init__(self, name, config):
         """A repo object which stores info about a single repo.
 
-        Stores most configuration within the config object. All
-        of the work is done by the RepoManager Class
         :param str name: Name of repo
         :param config: running config options
         :type config: ConfigParser.ConfigParser
