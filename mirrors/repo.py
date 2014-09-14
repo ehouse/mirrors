@@ -7,9 +7,11 @@ import os
 from datetime import datetime
 from mirrors.libmirrors import t2s
 
+
 class Singleton(type):
     """Singleton Class for RepoManager"""
     _instances = {}
+
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
@@ -22,7 +24,7 @@ class Repo:
 
         Stores most configuration within the config object. All
         of the work is done by the RepoManager Class
-        :param name: string name of repo
+        :param str name: Name of repo
         :param config: running config options
         :type config: ConfigParser.ConfigParser
         """
@@ -93,19 +95,31 @@ class Repo:
         logging.info("{0} loaded succesfully".format(self.name))
 
     def is_alive(self):
-        """Returns Bool of syncing status"""
+        """Returns Bool of syncing status
+
+        TODO
+        """
         return bool(self.__sync.p)
 
     def running_time(self):
-        """Return total running time of Sync."""
+        """Return total running time of Sync.
+
+        TODO
+        """
         pass
 
     def sleep_time(self):
-        """Return sleep duration."""
+        """Return sleep duration.
+
+        TODO
+        """
         pass
-    
+
     def time_remaining(self):
-        """Return time left until sleep is over."""
+        """Return time left until sleep is over.
+
+        TODO
+        """
         pass
 
     def terminate(self):
@@ -132,6 +146,12 @@ class Repo:
         self.__sync.start()
 
     class rsync_thread(threading.Thread):
+        """extended threading.Thread class to control rsync via subprocess
+       
+        :param str name: Name of repo
+        :param config: running config options
+        :type config: ConfigParser.ConfigParser
+        """
         def __init__(self, name, config):
             threading.Thread.__init__(self)
             self.config = config
@@ -199,10 +219,10 @@ class Repo:
 
 class RepoManager(object):
     __metaclass__ = Singleton
-    def __init__(self, config):
-        """Manager of the Repositories and Threading.
 
-        Controls when and what gets run
+    def __init__(self, config):
+        """Singleton manager of the Repositories and Threading.
+
         :param config: running config options
         :type config: ConfigParser.ConfigParser
         """
@@ -260,7 +280,7 @@ class RepoManager(object):
         """Create a Repo for a section in the running config.
 
         If the section does not exist will raise a Repo.RepoError
-        :param name: string of a repo section in the config
+        :param str name: Name of repo
         """
         if self.config.has_section(name):
             repo = Repo(name, self.config)
@@ -269,6 +289,11 @@ class RepoManager(object):
             raise self.RepoError("Cannot Create Repo, Section {0} does not exist".format(name))
 
     def del_repo(self, name):
+        """Delete repo object from dict.
+
+        :param str name: Name of repo
+        :raises RepoError: if no repo exists by passed in name
+        """
         if self.repo_dict[name]:
             del self.repo_dict[name]
         else:
@@ -277,8 +302,8 @@ class RepoManager(object):
     def enqueue(self, name):
         """Add repo to the queue
 
-        :param name: string of a repo section in the config
-        :return Bool: True if successful or False if repo already queued
+        :param str name: Name of repo
+        :return bool: True if successful or False if repo already queued
         """
         if not self.repo_dict[name].queued and not self.repo_dict[name].is_alive():
             self.repo_queue.put([self.config.get(name, "weight"), self.repo_dict[name]])
@@ -289,7 +314,7 @@ class RepoManager(object):
 
     class DefaultError(Exception):
         def __init__(self, message):
-            """DEFAULT Section Config Error"""
+            """DEFAULT Config Error"""
             Exception.__init__(self, message)
             self.message = message
 

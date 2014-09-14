@@ -1,5 +1,4 @@
 =====================
 libmirrors.py
 =====================
-.. automodule:: mirrors.libmirrors
-    :members:
+.. autofunction:: mirrors.libmirrors.t2s
