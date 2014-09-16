@@ -90,13 +90,10 @@ class Repo:
         # Status of Repo Queue
         self.queued = False
 
-        logging.info("{0} loaded succesfully".format(self.name))
+        logging.info("{0} loaded successfully".format(self.name))
 
     def is_alive(self):
-        """Returns Bool of syncing status
-
-        TODO
-        """
+        """Returns Bool of syncing status."""
         return bool(self.__sync.p)
 
     def running_time(self):
@@ -253,12 +250,12 @@ class RepoManager(object):
         while(True):
             repo = self.repo_queue.get()[1]
             if self.running_syncs <= self.config.get("DEFAULT", "async_processes"):
-                logging.debug("Aquired {0}".format(repo.name))
+                logging.debug("Acquired {0}".format(repo.name))
                 repo.queued = False
                 self.running_syncs += 1
                 repo.start_sync()
             else:
-                logging.debug("Requeueing {0}, no open threads".format(repo.name))
+                logging.debug("Re-queuing {0}, no open threads".format(repo.name))
                 self.repo_queue.put([-11, repo])
                 logging.debug("Sleeping for {0}".format(self.config.get("DEFAULT", "check_sleep")))
                 time.sleep(float(self.config.get("DEFAULT", "check_sleep")))

@@ -11,13 +11,12 @@ Contents:
 .. toctree::
     :maxdepth: 2
 
-    mirrors.repo
-    mirrors.libmirrors
-    mirrors.cmdline
+    getting-started
+    usage
+    source-docs
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
