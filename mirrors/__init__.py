@@ -3,7 +3,7 @@ import argparse
 import ConfigParser
 import logging
 import os
-from mirrors.repo import RepoManager
+from mirrors.repo import RepoManager, RepoError, GlobalError
 from mirrors.cmdline import Console
 
 
@@ -21,12 +21,12 @@ def main():
 
     if args.log:
         log_file = args.log
-    elif config.has_option("DEFAULT", "log_file"):
-        log_file = config.get("DEFAULT", "log_file")
+    elif config.has_option("GLOBAL", "log_file"):
+        log_file = config.get("GLOBAL", "log_file")
     else:
         log_file = ""
 
-    log_file = config.get("DEFAULT", "log_file")
+    log_file = config.get("GLOBAL", "log_file")
     if os.path.isfile(log_file):
         try:
             open(log_file, 'r').close()
@@ -50,16 +50,17 @@ def main():
     logging.debug("Beginning Loading Repos")
     try:
         manager = RepoManager(config)
-    except RepoManager.DefaultError as e:
-        logging.critical("Critical Failure While Loading DEFAULT Section | {0}".format(e.message))
+    except GlobalError as e:
+        logging.critical("Critical Failure While Loading GLOBAL Section | {0}".format(e.message))
         logging.critical("Program Terminating Due to Critical Error")
         exit(0)
 
     for name in config.sections():
         try:
-            manager.add_repo(name)
+            if name != "GLOBAL":
+                manager.add_repo(name)
             ### TODO: Make this optional
-        except RepoManager.RepoError as e:
+        except RepoError as e:
             logging.warning("FAILED TO LOAD {0} | {1}".format(e.name, e.message))
     logging.debug("Finished Loading Repos")
 

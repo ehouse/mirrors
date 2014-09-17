@@ -11,9 +11,9 @@ Global Config Options
 
 .. code-block:: python
 
-    [DEFAULT]
+    [GLOBAL]
 
-All of the global configuration is stored within the [DEFAULT] block. If it is
+All of the global configuration is stored within the [GLOBAL] block. If it is
 not present the application will fail to load.
 
 .. code-block:: python

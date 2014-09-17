@@ -36,7 +36,7 @@ class Repo:
         self.repo_manager = RepoManager()
 
         if not self.config.has_option(self.name, 'source'):
-            raise self.RepoError("No Source Defined".format(self.name), self.name)
+            raise RepoError("No Source Defined".format(self.name), self.name)
 
         if not self.config.has_option(self.name, 'destination'):
             self.config.set(self.name, 'destination', './distro/')
@@ -46,15 +46,15 @@ class Repo:
             os.makedirs(directory)
 
         if not self.config.has_option(self.name, 'rsync_args'):
-            raise self.RepoError("No rsync_args Defined".format(self.name), self.name)
+            raise RepoError("No rsync_args Defined".format(self.name), self.name)
 
         if not self.config.has_option(self.name, 'weight'):
             self.config.set(self.name, 'weight', '0')
 
         if self.config.has_option(self.name, 'async_sleep') and self.config.has_option(self.name, 'hourly_sync'):
-            raise self.repo_manager.RepoError("Both async_sleep and hourly_sync cannot be defined".format(self.name), self.name)
+            raise RepoError("Both async_sleep and hourly_sync cannot be defined".format(self.name), self.name)
         elif not self.config.has_option(self.name, 'async_sleep') and not self.config.has_option(self.name, 'hourly_sync'):
-            raise self.repo_manager.RepoError("Either async_sleep or hourly_sync must be defined".format(self.name), self.name)
+            raise RepoError("Either async_sleep or hourly_sync must be defined".format(self.name), self.name)
 
         if not self.config.has_option(self.name, 'pre_command'):
             self.config.set(self.name, 'pre_command', '')
@@ -65,24 +65,20 @@ class Repo:
         if not self.config.has_option(self.name, 'log_file'):
             self.config.set(self.name, 'log_file', './log/{0}.log'.format(self.name))
             logging.info("No log_file declared in {0}, defaulting to '{0}.log'".format(self.name))
-            #raise self.RepoError("no log_file defined in {0}".format(self.name), self.name)
 
         log_file = self.config.get(self.name, "log_file")
-        if os.path.isfile(self.config.get(self.name, "log_file")):
+        directory = os.path.dirname(log_file)
+        if not os.path.exists(directory):
+            logging.info("Creating {0}".format(directory))
             try:
-                open(log_file, 'r').close()
-                logging.debug("{0} log file good for writing".format(self.name))
-            except IOError:
-                logging.error("Error opening {0} for writing".format(self.name))
-        else:
-            directory = os.path.dirname(log_file)
-            if not os.path.exists(directory):
-                logging.info("Creating {0}".format(directory))
                 os.makedirs(directory)
-            try:
-                open(log_file, 'a').close()
             except IOError:
-                logging.error("Error creating {0}".format(self.name))
+                logging.error("Failed to create {0}".format(directory))
+        try:
+            open(log_file, 'a').close()
+            logging.debug("{0} log file good for writing".format(self.name))
+        except IOError:
+            logging.error("Error opening {0} for writing".format(self.name))
 
         # Contains rsync_thread
         self.__sync = self.rsync_thread(self.name, self.config)
@@ -221,7 +217,7 @@ class RepoManager(object):
         :param config: running config options
         :type config: ConfigParser.ConfigParser
         """
-        # ConfigParser Object which all of the RepoManager configs are stored under the DEFAULT section
+        # ConfigParser Object which all of the RepoManager configs are stored under the GLOBAL section
         self.config = config
 
         # Priority Queue for async processing
@@ -229,14 +225,14 @@ class RepoManager(object):
         # List of Repo Objects
         self.repo_dict = dict()
 
-        if not self.config.defaults():
-            raise self.DefaultError("Config Requires DEFAULT Section")
+        if not self.config.has_section("GLOBAL"):
+            raise self.GlobalError("Config Requires GLOBAL Section")
 
-        if not self.config.has_option('DEFAULT', 'async_processes'):
-            raise self.DefaultError("No async_processes value defined in DEFAULT")
+        if not self.config.has_option('GLOBAL', 'async_processes'):
+            raise self.GlobalError("No async_processes value defined in GLOBAL")
 
-        if not self.config.has_option('DEFAULT', 'check_sleep'):
-            config.set("DEFAULT", 'check_sleep', '30')
+        if not self.config.has_option('GLOBAL', 'check_sleep'):
+            config.set("GLOBAL", 'check_sleep', '30')
 
         # Current Running Syncs: Compared against max set in config
         self.running_syncs = 0
@@ -249,7 +245,7 @@ class RepoManager(object):
         """Queue loop checker for async_control"""
         while(True):
             repo = self.repo_queue.get()[1]
-            if self.running_syncs <= self.config.get("DEFAULT", "async_processes"):
+            if self.running_syncs <= self.config.get("GLOBAL", "async_processes"):
                 logging.debug("Acquired {0}".format(repo.name))
                 repo.queued = False
                 self.running_syncs += 1
@@ -257,8 +253,8 @@ class RepoManager(object):
             else:
                 logging.debug("Re-queuing {0}, no open threads".format(repo.name))
                 self.repo_queue.put([-11, repo])
-                logging.debug("Sleeping for {0}".format(self.config.get("DEFAULT", "check_sleep")))
-                time.sleep(float(self.config.get("DEFAULT", "check_sleep")))
+                logging.debug("Sleeping for {0}".format(self.config.get("GLOBAL", "check_sleep")))
+                time.sleep(float(self.config.get("GLOBAL", "check_sleep")))
 
     def repo(self, name):
         """Return Repo object if exists.
@@ -274,25 +270,25 @@ class RepoManager(object):
     def add_repo(self, name):
         """Create a Repo for a section in the running config.
 
-        If the section does not exist will raise a Repo.RepoError
+        If the section does not exist will raise a repo.RepoError
         :param str name: Name of repo
         """
         if self.config.has_section(name):
             repo = Repo(name, self.config)
             self.repo_dict[name] = repo
         else:
-            raise self.RepoError("Cannot Create Repo, Section {0} does not exist".format(name))
+            raise RepoError("Cannot Create Repo, Section {0} does not exist".format(name))
 
     def del_repo(self, name):
         """Delete repo object from dict.
 
         :param str name: Name of repo
-        :raises RepoError: if no repo exists by passed in name
+        :raises repo.RepoError: if no repo exists by passed in name
         """
         if self.repo_dict[name]:
             del self.repo_dict[name]
         else:
-            raise self.RepoError("Cannot Delete Repo, Repo {0} does not exist".format(name))
+            raise RepoError("Cannot Delete Repo, Repo {0} does not exist".format(name))
 
     def enqueue(self, name):
         """Add repo to the queue
@@ -307,15 +303,15 @@ class RepoManager(object):
         else:
             return False
 
-    class DefaultError(Exception):
-        def __init__(self, message):
-            """DEFAULT Config Error"""
-            Exception.__init__(self, message)
-            self.message = message
+class GlobalError(Exception):
+    def __init__(self, message):
+        """GLOBAL Config Error"""
+        Exception.__init__(self, message)
+        self.message = message
 
-    class RepoError(Exception):
-        def __init__(self, message, name):
-            """Repo Config Error"""
-            Exception.__init__(self, message)
-            self.message = message
-            self.name = name
+class RepoError(Exception):
+    def __init__(self, message, name):
+        """Repo Config Error"""
+        Exception.__init__(self, message)
+        self.message = message
+        self.name = name
