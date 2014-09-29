@@ -18,7 +18,7 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-class Repo:
+class Repo(object):
     def __init__(self, name, config):
         """A repo object which stores info about a single repo.
 
@@ -156,7 +156,6 @@ class Repo:
             self.finish_time = None
             self.thread_timer = None
 
-            # Set thread to daemon
             self.daemon = True
 
         def run(self):
@@ -206,7 +205,6 @@ class Repo:
 
             logging.debug("Closing {0}".format(self.config.get(self.name, 'log_file')))
             output_file.close()
-
 
 class RepoManager(object):
     __metaclass__ = Singleton

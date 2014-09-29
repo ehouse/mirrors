@@ -2,6 +2,11 @@
 from setuptools import setup, find_packages
 
 requires = [
+        "Pygments==1.6",
+        "Sphinx==1.2.3",
+        "argparse==1.2.1",
+        "configparser==3.3.0r2",
+        "docutils==0.12",
         ]
 
 setup(name='mirrors',
