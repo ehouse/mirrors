@@ -3,7 +3,7 @@ import argparse
 import ConfigParser
 import logging
 import os
-from mirrors.repo import RepoManager, RepoError, GlobalError
+from mirrors.repo import RepoManager, RepoConfigError, GlobalError
 from mirrors.cmdline import Console
 
 
@@ -59,8 +59,8 @@ def main():
         try:
             if name != "GLOBAL":
                 manager.add_repo(name)
-            ### TODO: Make this optional
-        except RepoError as e:
+            # TODO: Make this optional
+        except RepoConfigError as e:
             logging.warning("FAILED TO LOAD {0} | {1}".format(e.name, e.message))
     logging.debug("Finished Loading Repos")
 

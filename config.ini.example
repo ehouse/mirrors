@@ -11,10 +11,6 @@ async_processes = 4
 # Location of log file: Optional
 log_file = ./mirrors.log
 
-# Time to sleep in seconds in between attempts to run a new sync: Optional
-# Defaults to 30 seconds
-check_sleep = 30
-
 # Name of Repo: Required
 # Repos are access via this name in the repl
 # This names also dictate what folder the synced files go into
@@ -34,9 +30,14 @@ rsync_args = -avhz
 destination = ./distros/
 
 # Weight of the repo sync in the priority queue: Optional
-# Valid values are between -10 and 10. -10 being the highest priority and 10 being the lowest
+# Valid values [-10..10]. -10 being the highest priority and 10 being the lowest
 # Default value is 0
 weight = 0
+
+# Setting to True will disable syncing for Repo. Optional
+# Valid values [True|False]
+# Default is False
+disabled = False
 
 # shell command or script to run before a sync is started: Optional
 pre_command =
@@ -44,7 +45,8 @@ pre_command =
 # shell command or script to run after a sync has finished: Optional
 post_command =
 
-# Individual log file
+# Individual log file. Optional
+# Default will be the Repo name appended with .log
 log_file = ./log/LDP.log
 
 # Time after a completed sync before attempting a new sync: Either async_sleep or hourly_sync is required, not both. Remove comment of desired setting

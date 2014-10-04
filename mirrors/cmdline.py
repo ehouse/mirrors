@@ -1,5 +1,6 @@
 from cmd import Cmd
 import logging
+from mirrors.repo import RepoError
 
 
 class Console(Cmd):
@@ -11,35 +12,55 @@ class Console(Cmd):
 
     def do_status(self, *args):
         """Prints status table or the status of an individual sync."""
-        # Current system is a placeholder. Needs to be reworked
-        # Will return a lot more information
         name = args[0]
         if name:
-            repo = self.repo_manager.repo(name)
-            if repo.is_alive():
-                print("{0} is currently Syncing".format(name))
-            else:
-                print("{0} is currently Sleeping".format(name))
+            try:
+                print self.repo_manager.status(name)
+            except RepoError as e:
+                print e.message
         else:
-            for key in self.repo_manager.repo_dict:
-                self.do_status(key)
+            for key in self.repo_manager.gen_repo():
+                self.do_status(key.name)
 
     def do_list(self, *args):
         """List all of the loaded repos."""
-        for key in self.repo_manager.repo_dict:
+        for key in self.repo_manager.gen_repo():
             print key
 
     def do_enqueue(self, *args):
         """Add repo onto the end of the async queue."""
         name = args[0]
         if name:
-            if self.repo_manager.enqueue(name):
+            try:
+                self.repo_manager.enqueue(name)
                 print("{0} added to sync queue".format(name))
-            else:
-                print("Failed to enqueue {0}, already in queue".format(name))
+            except RepoError as e:
+                print(e.message)
         else:
-            print("enqueue requires a repo")
+            print("Requires a repo name as an argument.")
     do_start = do_enqueue
+
+    def do_activate(self, *args):
+        """Activate repo for syncing."""
+        name = args[0]
+        if name:
+            try:
+                self.repo_manager.activate(name)
+            except RepoError as e:
+                print e.message
+        else:
+            print("Requires a repo name as an argument.")
+
+    def do_deactivate(self, *args):
+        """Deactivate repo from syncing."""
+        name = args[0]
+        if name:
+            try:
+                self.repo_manager.deactivate(name)
+            except RepoError as e:
+                print e.message
+        else:
+            print("Requires a repo name as an argument.")
 
     def do_print(self, *args):
         """Print config and status events.
@@ -86,7 +107,7 @@ class Console(Cmd):
     def do_terminate(self, *args):
         """Send SIGTERM to rsync process."""
         if args[0]:
-            self.repo_manager.repo(args[0]).terminate()
+            self.repo_manager.get_repo(args[0]).terminate()
         else:
             print("Missing required argument: Repo")
     do_kill = do_terminate
@@ -94,7 +115,7 @@ class Console(Cmd):
     def do_forcekill(self, *args):
         """Send SIGKILL to rsync process."""
         if args[0]:
-            self.repo_manager.repo(args[0]).kill()
+            self.repo_manager.get_repo(args[0]).kill()
         else:
             print("Missing required argument: Repo")
 
@@ -105,5 +126,8 @@ class Console(Cmd):
 
     def postloop(self):
         """postloop cleanup."""
+        # Cleanup Process
+        for key in self.repo_manager.gen_repo():
+            key.terminate()
         print("Terminating mirrors process")
         logging.debug("Process Terminated via REPL")

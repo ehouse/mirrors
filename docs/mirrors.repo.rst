@@ -1,5 +1,5 @@
 =====================
-Repo.py
+repo.py
 =====================
 .. autoclass:: mirrors.repo.Repo
    :members:
