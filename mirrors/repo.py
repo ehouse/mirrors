@@ -214,6 +214,9 @@ class Repo(object):
             del self.p
             self.p = None
 
+            # Remove state from running_syncs
+            self.repo_manager.running_syncs -= 1
+
             self.finish_time = datetime.now()
             logging.info("finished sync {0} at {1}".format(self.name, self.finish_time))
 
@@ -268,11 +271,11 @@ class RepoManager(object):
                     # If deactive, toss aside
                     break
 
-            if self.running_syncs <= self.config.get("GLOBAL", "async_processes"):
+            if self.running_syncs <= self.config.getint("GLOBAL", "async_processes"):
                 logging.debug("Acquired {0}".format(repo.name))
                 repo.queued = False
                 self.running_syncs += 1
-                logging.debug("Running Sync {0}, {1} slots available".format(repo.name, self.running_syncs))
+                logging.debug("Running Sync {0}, {1} slots available".format(repo.name, self.config.getint("GLOBAL", "async_processes")-self.running_syncs))
                 repo.start_sync()
             else:
                 logging.debug("Requeuing {0}, no open threads".format(repo.name))
