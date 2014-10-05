@@ -61,7 +61,7 @@ class Repo(object):
         if not self.config.has_option(self.name, 'weight'):
             self.config.set(self.name, 'weight', '0')
 
-        if not self.config.has_option(self.name, 'deactive'):
+        if self.config.has_option(self.name, 'deactive'):
             self.deactive = self.config.getboolean(self.name, 'deactive')
         else:
             self.config.set(self.name, 'deactive', 'False')

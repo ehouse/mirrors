@@ -30,7 +30,10 @@ class Console(Cmd):
     def do_enqueue(self, *args):
         """Add repo onto the end of the async queue."""
         name = args[0]
-        if name:
+        if name == "all":
+            for repo in self.repo_manager.gen_repo():
+                self.do_enqueue(repo.name)
+        elif name:
             try:
                 self.repo_manager.enqueue(name)
                 print("{0} added to sync queue".format(name))
