@@ -379,7 +379,7 @@ class RepoManager(object):
         elif self.get_repo(name).is_alive():
             return "{0} is syncing, active for {1}".format(name, self.get_repo(name).running_time())
         else:
-            return "{0} is sleeping, {1} til sync".format(name, self.get_repo(name).time_remaining())
+            return "{0} is sleeping, sync in {1}".format(name, self.get_repo(name).time_remaining())
 
     def del_repo(self, name):
         """Delete repo object from dict.
