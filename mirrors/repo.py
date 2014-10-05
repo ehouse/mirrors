@@ -4,7 +4,7 @@ import threading
 import time
 import subprocess
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from mirrors.libmirrors import t2s
 
 
@@ -22,8 +22,8 @@ class Repo(object):
     def __init__(self, name, config):
         """A repo object which stores info about a single repo.
 
-        :param str name: Name of repo.
-        :param config: running config options.
+        :param str name: Name of repo
+        :param config: running config options
         :type config: ConfigParser.ConfigParser
         """
 
@@ -42,7 +42,7 @@ class Repo(object):
         self.repo_manager = RepoManager()
 
         # Contains rsync_thread
-        self.__sync = self.rsync_thread(self.name, self.config)
+        self.__sync = None
 
         # Config Validation Section
         if not self.config.has_option(self.name, 'source'):
@@ -103,28 +103,42 @@ class Repo(object):
 
     def is_alive(self):
         """Bool of syncing status."""
-        return bool(self.__sync.p)
+        if self.__sync:
+            return bool(self.__sync.p)
+        return False
 
     def running_time(self):
         """Total running time of active sync.
 
-        :returns: int -- total syncing time of sync or 0 if not syncing.
+        :returns int: Total syncing time of sync
+        :returns None: If not syncing
         """
-        pass
+        if self.__sync:
+            if self.is_alive():
+                delta = datetime.now() - self.__sync.start_time
+                return delta - timedelta(microseconds=delta.microseconds)
 
     def sleep_time(self):
         """Sleep duration of sleeping sync.
 
-        :returns: int -- sleep duration time or 0 if not sleeping.
+        :returns int: Sleep duration time
+        :returns None: If not sleeping
         """
-        pass
+        if self.__sync:
+            if self.__sync.sleep_start:
+                delta = datetime.now() - self.__sync.sleep_start
+                return delta - timedelta(microseconds=delta.microseconds)
 
     def time_remaining(self):
         """Return time left until sleep is over.
 
-        TODO
+        :returns int: Time remaining in sleep
+        :returns None: If not sleeping
         """
-        pass
+        if self.__sync:
+            if self.__sync.sleep_start:
+                delta = timedelta(seconds=t2s(self.config.get(self.name, "async_sleep"))) - self.sleep_time()
+                return delta - timedelta(microseconds=delta.microseconds)
 
     def terminate(self):
         """Send SIGTERM To the rsync process."""
@@ -143,7 +157,6 @@ class Repo(object):
 
         This will wipe all currently running rsync timers
         """
-        del self.__sync
         self.__sync = self.rsync_thread(self.name, self.config)
 
     def start_sync(self):
@@ -154,8 +167,8 @@ class Repo(object):
     class rsync_thread(threading.Thread):
         """Extended threading.Thread class to control rsync via subprocess.
 
-        :param str name: Name of repo.
-        :param config: Running config options.
+        :param str name: Name of repo
+        :param config: Running config options
         :type config: Configparser.Configparser
         """
         def __init__(self, name, config):
@@ -169,6 +182,7 @@ class Repo(object):
 
             self.start_time = None
             self.finish_time = None
+            self.start_sleep = None
             self.thread_timer = None
 
             self.daemon = True
@@ -208,17 +222,18 @@ class Repo(object):
             t = t2s(self.config.get(self.name, "async_sleep"))
             self.thread_timer = threading.Timer(t, self.repo_manager.enqueue, [self.name])
             self.thread_timer.start()
-            logging.info("{0} will sleep for {1}".format(self.name, self.config.get(self.name, "async_sleep")))
+
+            # Time that thread starts sleeping
+            self.sleep_start = datetime.now()
 
             # clear out the current process when it finishes
-            del self.p
             self.p = None
 
             # Remove state from running_syncs
             self.repo_manager.running_syncs -= 1
 
             self.finish_time = datetime.now()
-            logging.info("finished sync {0} at {1}".format(self.name, self.finish_time))
+            logging.info("finished {0} at {1}, sleeping for {2}".format(self.name, self.finish_time, self.config.get(self.name, "async_sleep")))
 
             logging.debug("closing {0}".format(self.config.get(self.name, 'log_file')))
             output_file.close()
@@ -230,7 +245,7 @@ class RepoManager(object):
     def __init__(self, config):
         """Singleton manager of the repositories and threading.
 
-        :param config: Running config options.
+        :param config: Running config options
         :type config: Configparser.Configparser
         """
         # configparser object which all of the repomanager configs are stored under the GLOBAL Section
@@ -285,10 +300,10 @@ class RepoManager(object):
     def get_repo(self, name):
         """Return repo object if exists.
 
-        :param str name: name of repo.
-        :returns: Repo Object.
+        :param str name: name of repo
+        :returns: Repo Object
         :rtype: Repo
-        :returns: None -- if no repo exists by that name.
+        :returns None: If no repo exists by that name
         """
         if name in self._repo_dict:
             return self._repo_dict[name]
@@ -305,8 +320,8 @@ class RepoManager(object):
     def add_repo(self, name):
         """Create a repo for a section in the running config.
 
-        :param str name: Name of repo.
-        :raises Repo.RepoConfigError: if no config exists for given repo name.
+        :param str name: Name of repo
+        :raises Repo.RepoConfigError: if no config exists for given repo name
         """
         if self.get_repo(name):
             raise RepoConfigError("Cannon create repo {0}, already created".format(name), name)
@@ -320,8 +335,8 @@ class RepoManager(object):
     def deactivate(self, name):
         """Deactivate repo from syncing.
 
-        :param str name: Name of repo.
-        :raises Repo.RepoError: if no repo exists by given name.
+        :param str name: Name of repo
+        :raises Repo.RepoError: if no repo exists by given name
         """
         if self.get_repo(name):
             if self.get_repo(name).deactive:
@@ -335,8 +350,8 @@ class RepoManager(object):
     def activate(self, name):
         """Activate repo for syncing.
 
-        :param str name: Name of Repo.
-        :raises Repo.RepoError: if no repo exists by given name.
+        :param str name: Name of Repo
+        :raises Repo.RepoError: if no repo exists by given name
         """
         if self.get_repo(name):
             if not self.get_repo(name).deactive:
@@ -351,8 +366,8 @@ class RepoManager(object):
     def status(self, name):
         """Return status of Repo.
 
-        :param str name: Name of Repo.
-        :returns: str -- Status of Repo
+        :param str name: Name of Repo
+        :returns str: Status of Repo
         """
         if not self.get_repo(name):
             raise RepoError("Repo {0} doesn't exist".format(name), name)
@@ -362,14 +377,14 @@ class RepoManager(object):
         elif self.get_repo(name).queued:
             return "{0} is queued".format(name)
         elif self.get_repo(name).is_alive():
-            return "{0} is syncing".format(name)
+            return "{0} is syncing, active for {1}".format(name, self.get_repo(name).running_time())
         else:
-            return "{0} is sleeping".format(name)
+            return "{0} is sleeping, {1} til sync".format(name, self.get_repo(name).time_remaining())
 
     def del_repo(self, name):
         """Delete repo object from dict.
 
-        :param str name: Name of repo.
+        :param str name: Name of repo
         :raises Repo.RepoError: if no repo exists by passed in name.
         """
         if self.get_repo(name):
@@ -380,8 +395,8 @@ class RepoManager(object):
     def enqueue(self, name):
         """Add repo to the queue.
 
-        :param str name: Name of repo.
-        :raises Repo.RepoError: if repo is already queued or doesn't exist.
+        :param str name: Name of repo
+        :raises Repo.RepoError: if repo is already queued or doesn't exist
         """
         if not self.get_repo(name):
             raise RepoError("Repo {0} doesn't exist".format(name), name)

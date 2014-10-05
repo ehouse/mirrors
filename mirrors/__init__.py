@@ -59,6 +59,7 @@ def main():
         try:
             if name != "GLOBAL":
                 manager.add_repo(name)
+                manager.enqueue(name)
         except RepoConfigError as e:
             logging.warning("FAILED TO LOAD {0} | {1}".format(e.name, e.message))
     logging.debug("Finished Loading Repos")
