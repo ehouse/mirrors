@@ -272,6 +272,7 @@ class RepoManager(object):
                 logging.debug("Acquired {0}".format(repo.name))
                 repo.queued = False
                 self.running_syncs += 1
+                logging.debug("Running Sync {0}, {1} slots available".format(repo.name, self.running_syncs))
                 repo.start_sync()
             else:
                 logging.debug("Requeuing {0}, no open threads".format(repo.name))

@@ -12,7 +12,7 @@ def main():
     parser.add_argument("-c", metavar="config", help="Configuration File Location", required=True)
     parser.add_argument("--log", metavar="logfile", help="Path to Log File")
     debug_group = parser.add_mutually_exclusive_group(required=False)
-    debug_group.add_argument('-v', '--verbose', action='store_true', help="Increase Verbosity")
+    #debug_group.add_argument('-v', '--verbose', action='store_true', help="Increase Verbosity")
     debug_group.add_argument('-D', '--debug', action='store_true', help="Debug Mode")
     args = parser.parse_args()
 
@@ -41,11 +41,11 @@ def main():
         except IOError as e:
             print("Error creating {0}: {1}".format(log_file, e))
 
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s', filename=log_file)
-    elif args.debug:
+    if args.debug:
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s, %(threadName)s, %(levelname)s: %(message)s', filename=log_file)
         logging.debug("Turning Debug On")
+    else:
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s: %(levelname)s: %(message)s', filename=log_file)
 
     logging.debug("Beginning Loading Repos")
     try:
@@ -59,7 +59,6 @@ def main():
         try:
             if name != "GLOBAL":
                 manager.add_repo(name)
-            # TODO: Make this optional
         except RepoConfigError as e:
             logging.warning("FAILED TO LOAD {0} | {1}".format(e.name, e.message))
     logging.debug("Finished Loading Repos")
