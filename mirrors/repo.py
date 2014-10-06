@@ -32,7 +32,7 @@ class Repo(object):
         # Name of the Repo
         self.name = name
 
-        # deactive repos will not run
+        # inactive repos will not run
         self.deactive = False
 
         # Status of Repo Queue
@@ -97,7 +97,7 @@ class Repo(object):
             logging.error("Error opening {0} for writing".format(self.name))
 
         if(self.deactive):
-            logging.info("{0} loaded successfully, but deactive".format(self.name))
+            logging.info("{0} loaded successfully, but disabled".format(self.name))
         else:
             logging.info("{0} loaded successfully".format(self.name))
 
@@ -110,8 +110,10 @@ class Repo(object):
     def running_time(self):
         """Total running time of active sync.
 
-        :returns int: Total syncing time of sync
-        :returns None: If not syncing
+        :rtype: int
+        :returns: An int of total syncing time elapsed
+        :rtype: None
+        :returns: None if not syncing
         """
         if self.__sync:
             if self.is_alive():
@@ -121,8 +123,10 @@ class Repo(object):
     def sleep_time(self):
         """Sleep duration of sleeping sync.
 
-        :returns int: Sleep duration time
-        :returns None: If not sleeping
+        :rtype: int
+        :returns: A int of time elapsed since sleeping
+        :rtype: None
+        :returns: None if not in sleeping state
         """
         if self.__sync:
             if self.__sync.sleep_start:
@@ -132,8 +136,10 @@ class Repo(object):
     def time_remaining(self):
         """Return time left until sleep is over.
 
-        :returns int: Time remaining in sleep
-        :returns None: If not sleeping
+        :rtype: int
+        :returns: A int of time remaining in sleep state
+        :rtype: None
+        :returns: None if not in sleeping state
         """
         if self.__sync:
             if self.__sync.sleep_start:
@@ -275,7 +281,7 @@ class RepoManager(object):
     def __check_queue(self):
         """Queue loop checker for async_control."""
         while(True):
-            # Check for deactive repos
+            # Check for inactive repos
             found = None
 
             while not found:
@@ -283,7 +289,7 @@ class RepoManager(object):
                 if not repo.deactive:
                     found = True
                 else:
-                    # If deactive, toss aside
+                    # If inactive, toss aside
                     break
 
             if self.running_syncs <= self.config.getint("GLOBAL", "async_processes"):
@@ -301,9 +307,10 @@ class RepoManager(object):
         """Return repo object if exists.
 
         :param str name: name of repo
-        :returns: Repo Object
         :rtype: Repo
-        :returns None: If no repo exists by that name
+        :returns: Repo Object
+        :rtype: None
+        :returns: None if no repo exists by passed in name
         """
         if name in self._repo_dict:
             return self._repo_dict[name]
@@ -311,8 +318,8 @@ class RepoManager(object):
     def gen_repo(self):
         """Generator for repo_dict.
 
-        :returns: Repo Object
         :rtype: Repo
+        :returns: Repo Object
         """
         for name in self._repo_dict:
             yield self._repo_dict[name]
@@ -367,7 +374,8 @@ class RepoManager(object):
         """Return status of Repo.
 
         :param str name: Name of Repo
-        :returns str: Status of Repo
+        :rtype: str
+        :returns: str status of Repo
         """
         if not self.get_repo(name):
             raise RepoError("Repo {0} doesn't exist".format(name), name)
